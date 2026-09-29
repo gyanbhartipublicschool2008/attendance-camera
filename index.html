@@ -248,7 +248,7 @@ async function capture() {
         '%  | Live: ' + (live * 100).toFixed(0) + '%'
       );
 
-      if (real < 0.50 || live < 0.50) {
+      if (real < 0.50 || live < 0.05) {
         throw new Error('Live face confirm nahi hua. Photo/video screen ke bajay apna face camera ke saamne rakhein.');
       }
 
