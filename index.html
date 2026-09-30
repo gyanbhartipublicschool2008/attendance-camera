@@ -270,11 +270,15 @@ async function capture() {
       });
 
       setStatus(
-        verified
-          ? '✔️ Face Match ho gaya. Attendance window me Submit Punch karein.'
-          : '❌ Face Match nahi hua. Dobara try karein.',
-        verified ? 'ok' : 'bad'
-      );
+  verified
+    ? '✔️ Face Match ho gaya. Wapas original page par ja rahe hain...'
+    : '❌ Face Match nahi hua. Dobara try karein.',
+  verified ? 'ok' : 'bad'
+);
+
+if (verified) {
+  setTimeout(() => finish(true), 500);
+}
 
     } else {
       // Registration: store both the photo and the browser-generated embedding.
@@ -287,8 +291,8 @@ async function capture() {
       });
 
       setScore('Face AI data successfully generated.');
-      setStatus('✔️ Master Face capture ho gaya. Is window ko band kar sakte hain.', 'ok');
-      setTimeout(() => finish(true), 900);
+setStatus('✔️ Master Face capture ho gaya. Wapas original page par ja rahe hain...', 'ok');
+setTimeout(() => finish(true), 500);
     }
 
     stopCamera();
@@ -311,13 +315,37 @@ function sendToOpener(data) {
 
 function finish(success) {
   stopCamera();
-  if (success || window.opener) {
+
+  // Jis page se camera window khuli thi, usi page ko wapas active karein
+  if (window.opener && !window.opener.closed) {
+    try {
+      window.opener.focus();
+
+      window.opener.postMessage({
+        source: 'GBPS_ATTENDANCE_CAMERA',
+        action: 'cameraFinished',
+        success: success === true
+      }, '*');
+    } catch (e) {
+      console.error('Opener message error:', e);
+    }
+
+    // Camera wali popup/window close karein
     setTimeout(() => {
-      try { window.close(); } catch(e) {}
-    }, 100);
+      try {
+        window.close();
+      } catch (e) {
+        console.error('Window close error:', e);
+      }
+    }, 200);
+  } else {
+    // Agar opener nahi hai to camera page par hi message dikhayein
+    setStatus(
+      'Original page nahi mila. Camera ko original attendance page se open karein.',
+      'bad'
+    );
   }
 }
-
 window.addEventListener('beforeunload', stopCamera);
 init();
 </script>
