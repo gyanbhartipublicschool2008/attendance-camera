@@ -186,7 +186,7 @@ async function startCamera() {
     setScore('');
   } catch (e) {
     console.error(e);
-    setStatus('Chrome camera permission Allow karein. Error: ' + (e.message || e), 'bad');
+    setStatus('Camera permission Allow karein. Error: ' + (e.message || e), 'bad');
   }
 }
 
@@ -215,8 +215,6 @@ async function capture() {
     canvas.height = Math.round(h * scale);
 
     const ctx = canvas.getContext('2d', { willReadFrequently: true });
-
-    // Do not mirror the saved image; the AI sees the normal camera orientation.
     ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
     setStatus('Face AI verification chal raha hai...');
@@ -238,14 +236,13 @@ async function capture() {
       throw new Error('Face AI embedding generate nahi hua. Dobara photo lein.');
     }
 
-    // Human exposes anti-spoof and liveness scores as face.real and face.live.
     if (mode === 'punch') {
       const real = Number(face.real == null ? 1 : face.real);
       const live = Number(face.live == null ? 1 : face.live);
 
       setScore(
-        'Match check...  |  Real: ' + (real * 100).toFixed(0) +
-        '%  | Live: ' + (live * 100).toFixed(0) + '%'
+        'Match check... | Real: ' + (real * 100).toFixed(0) +
+        '% | Live: ' + (live * 100).toFixed(0) + '%'
       );
 
       if (real < 0.50 || live < 0.05) {
@@ -256,9 +253,7 @@ async function capture() {
       const similarityPct = Number(similarity) * 100;
       const verified = similarity >= 0.50;
 
-      setScore(
-        'Similarity: ' + similarityPct.toFixed(1) + '%'
-      );
+      setScore('Similarity: ' + similarityPct.toFixed(1) + '%');
 
       sendToOpener({
         source: 'GBPS_ATTENDANCE_CAMERA',
@@ -270,18 +265,17 @@ async function capture() {
       });
 
       setStatus(
-  verified
-    ? '✔️ Face Match ho gaya. Wapas original page par ja rahe hain...'
-    : '❌ Face Match nahi hua. Dobara try karein.',
-  verified ? 'ok' : 'bad'
-);
+        verified
+          ? '✔️ Face Match ho gaya. Wapas original page par ja rahe hain...'
+          : '❌ Face Match nahi hua. Dobara try karein.',
+        verified ? 'ok' : 'bad'
+      );
 
-if (verified) {
-  setTimeout(() => finish(true), 500);
-}
+      if (verified) {
+        setTimeout(() => finish(true), 600);
+      }
 
     } else {
-      // Registration: store both the photo and the browser-generated embedding.
       sendToOpener({
         source: 'GBPS_ATTENDANCE_CAMERA',
         action: 'registrationResult',
@@ -291,8 +285,8 @@ if (verified) {
       });
 
       setScore('Face AI data successfully generated.');
-setStatus('✔️ Master Face capture ho gaya. Wapas original page par ja rahe hain...', 'ok');
-setTimeout(() => finish(true), 500);
+      setStatus('✔️ Master Face capture ho gaya. Wapas original page par ja rahe hain...', 'ok');
+      setTimeout(() => finish(true), 600);
     }
 
     stopCamera();
@@ -306,46 +300,57 @@ setTimeout(() => finish(true), 500);
 }
 
 function sendToOpener(data) {
+  let sent = false;
+  // Browser popup ke liye
   if (window.opener && !window.opener.closed) {
-    window.opener.postMessage(data, '*');
-  } else {
-    setStatus('Original attendance window nahi mili. Is page ko app ke Camera button se kholein.', 'bad');
+    try {
+      window.opener.postMessage(data, '*');
+      sent = true;
+    } catch(e) {}
   }
+  // Android WebView / iFrame ke liye
+  if (window.parent && window.parent !== window) {
+    try {
+      window.parent.postMessage(data, '*');
+      sent = true;
+    } catch(e) {}
+  }
+  // Local storage backup (WebView bridge fallback)
+  try {
+    localStorage.setItem('GBPS_CAMERA_RESULT', JSON.stringify(data));
+  } catch(e) {}
 }
 
 function finish(success) {
   stopCamera();
 
-  // Jis page se camera window khuli thi, usi page ko wapas active karein
-  if (window.opener && !window.opener.closed) {
-    try {
+  const closeData = {
+    source: 'GBPS_ATTENDANCE_CAMERA',
+    action: 'cameraFinished',
+    success: success === true
+  };
+
+  sendToOpener(closeData);
+
+  // Window band karne ka prayas
+  try {
+    if (window.opener && !window.opener.closed) {
       window.opener.focus();
-
-      window.opener.postMessage({
-        source: 'GBPS_ATTENDANCE_CAMERA',
-        action: 'cameraFinished',
-        success: success === true
-      }, '*');
-    } catch (e) {
-      console.error('Opener message error:', e);
     }
+  } catch(e) {}
 
-    // Camera wali popup/window close karein
-    setTimeout(() => {
-      try {
-        window.close();
-      } catch (e) {
-        console.error('Window close error:', e);
-      }
-    }, 200);
-  } else {
-    // Agar opener nahi hai to camera page par hi message dikhayein
-    setStatus(
-      'Original page nahi mila. Camera ko original attendance page se open karein.',
-      'bad'
-    );
-  }
+  setTimeout(() => {
+    try {
+      window.close();
+    } catch(e) {}
+
+    // Agar app me window.close() block ho, to user ko back button dabane ko bolenge, red error nahi dikhayenge
+    if (document.body) {
+      setStatus('✔️ Kaam poora ho gaya! Agar screen band na ho toh mobile ka Back button dabayein.', 'ok');
+    }
+  }, 300);
 }
+
 window.addEventListener('beforeunload', stopCamera);
 init();
 </script>
