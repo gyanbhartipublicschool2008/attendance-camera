@@ -266,7 +266,6 @@ async function capture() {
 
       if (verified) {
         setStatus('✔️ Face Match ho gaya (' + similarityPct.toFixed(1) + '%). Wapas ja rahe hain...', 'ok');
-        // 50% se zyada match hote hi 400ms me apne aap wapas bhej dega
         setTimeout(() => finish(true), 400);
       } else {
         setStatus('❌ Face Match nahi hua (50% se kam). Dobara try karein.', 'bad');
@@ -283,7 +282,7 @@ async function capture() {
       });
 
       setScore('Face AI data successfully generated.');
-      setStatus('✔️ Master Face capture ho gaya. Wapas ja rahe hain...', 'ok');
+      setStatus('✔️️ Master Face capture ho gaya. Wapas ja rahe hain...', 'ok');
       setTimeout(() => finish(true), 400);
     }
 
@@ -298,19 +297,19 @@ async function capture() {
 }
 
 function sendToOpener(data) {
-  // Browser popup window ke liye
+  // 1. Browser popup window ke liye
   if (window.opener && !window.opener.closed) {
     try {
       window.opener.postMessage(data, '*');
     } catch(e) {}
   }
-  // Android WebView / iFrame ke liye
+  // 2. Android WebView / iFrame ke liye
   if (window.parent && window.parent !== window) {
     try {
       window.parent.postMessage(data, '*');
     } catch(e) {}
   }
-  // Local storage backup (agar window disconnect ho)
+  // 3. Storage fallback (taaki pichla page ise direct read kar sake)
   try {
     localStorage.setItem('GBPS_CAMERA_RESULT', JSON.stringify(data));
   } catch(e) {}
@@ -327,7 +326,7 @@ function finish(success) {
 
   sendToOpener(closeData);
 
-  // 1. Agar Browser / Chrome Popup hai to Opener ko focus karein aur close karein
+  // Browser me popup band karne ka prayas
   if (window.opener && !window.opener.closed) {
     try {
       window.opener.focus();
@@ -337,17 +336,17 @@ function finish(success) {
     } catch(e) {}
   }
 
-  // 2. Agar Android App / WebView hai (jahan window.close block hota hai)
+  // WebView / App ke liye:
+  // Isme scriptUrl replace nahi karenge, balki seedhe HISTORY BACK karenge
+  // taaki user theek usi form (Punch In/Out/Register) par wapas aaye jahan se camera dabaya tha!
   setTimeout(() => {
     try {
       window.close();
     } catch(e) {}
 
-    // Agar window abhi bhi open hai, toh apne aap pichle attendance page par navigate karein
+    // Agar window abhi bhi khuli hui hai (WebView me)
     if (window.history && window.history.length > 1) {
       window.history.back();
-    } else if (scriptUrl) {
-      window.location.replace(scriptUrl);
     }
   }, 300);
 }
