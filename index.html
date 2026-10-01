@@ -264,15 +264,13 @@ async function capture() {
         photoData: canvas.toDataURL('image/jpeg', 0.82)
       });
 
-      setStatus(
-        verified
-          ? '✔️ Face Match ho gaya. Wapas original page par ja rahe hain...'
-          : '❌ Face Match nahi hua. Dobara try karein.',
-        verified ? 'ok' : 'bad'
-      );
-
       if (verified) {
-        setTimeout(() => finish(true), 600);
+        setStatus('✔️ Face Match ho gaya (' + similarityPct.toFixed(1) + '%). Wapas ja rahe hain...', 'ok');
+        // 50% se zyada match hote hi 400ms me apne aap wapas bhej dega
+        setTimeout(() => finish(true), 400);
+      } else {
+        setStatus('❌ Face Match nahi hua (50% se kam). Dobara try karein.', 'bad');
+        document.getElementById('capture').disabled = false;
       }
 
     } else {
@@ -285,8 +283,8 @@ async function capture() {
       });
 
       setScore('Face AI data successfully generated.');
-      setStatus('✔️ Master Face capture ho gaya. Wapas original page par ja rahe hain...', 'ok');
-      setTimeout(() => finish(true), 600);
+      setStatus('✔️ Master Face capture ho gaya. Wapas ja rahe hain...', 'ok');
+      setTimeout(() => finish(true), 400);
     }
 
     stopCamera();
@@ -300,22 +298,19 @@ async function capture() {
 }
 
 function sendToOpener(data) {
-  let sent = false;
-  // Browser popup ke liye
+  // Browser popup window ke liye
   if (window.opener && !window.opener.closed) {
     try {
       window.opener.postMessage(data, '*');
-      sent = true;
     } catch(e) {}
   }
   // Android WebView / iFrame ke liye
   if (window.parent && window.parent !== window) {
     try {
       window.parent.postMessage(data, '*');
-      sent = true;
     } catch(e) {}
   }
-  // Local storage backup (WebView bridge fallback)
+  // Local storage backup (agar window disconnect ho)
   try {
     localStorage.setItem('GBPS_CAMERA_RESULT', JSON.stringify(data));
   } catch(e) {}
@@ -332,21 +327,27 @@ function finish(success) {
 
   sendToOpener(closeData);
 
-  // Window band karne ka prayas
-  try {
-    if (window.opener && !window.opener.closed) {
+  // 1. Agar Browser / Chrome Popup hai to Opener ko focus karein aur close karein
+  if (window.opener && !window.opener.closed) {
+    try {
       window.opener.focus();
-    }
-  } catch(e) {}
+    } catch(e) {}
+    try {
+      window.close();
+    } catch(e) {}
+  }
 
+  // 2. Agar Android App / WebView hai (jahan window.close block hota hai)
   setTimeout(() => {
     try {
       window.close();
     } catch(e) {}
 
-    // Agar app me window.close() block ho, to user ko back button dabane ko bolenge, red error nahi dikhayenge
-    if (document.body) {
-      setStatus('✔️ Kaam poora ho gaya! Agar screen band na ho toh mobile ka Back button dabayein.', 'ok');
+    // Agar window abhi bhi open hai, toh apne aap pichle attendance page par navigate karein
+    if (window.history && window.history.length > 1) {
+      window.history.back();
+    } else if (scriptUrl) {
+      window.location.replace(scriptUrl);
     }
   }, 300);
 }
