@@ -1,10 +1,10 @@
+```html
 <!doctype html>
 <html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
 <title>Gyan Bharti - Secure Face Camera</title>
-
 <style>
   *{box-sizing:border-box}
   body{margin:0;background:#eef2f5;font-family:Arial,sans-serif;color:#222}
@@ -23,63 +23,34 @@
   #close{background:#777;color:#fff}
   button:disabled{opacity:.55;cursor:not-allowed}
   .score{font-size:13px;color:#555;text-align:center;margin-top:8px}
-  .ok{color:#188038}
-  .bad{color:#d93025}
+  .ok{color:#188038}.bad{color:#d93025}
 </style>
 
 <script src="https://cdn.jsdelivr.net/npm/@vladmandic/human@3.3.6/dist/human.js"></script>
 </head>
 
 <body>
-
 <div class="wrap">
   <div class="card">
-
     <h2>🔐 Secure Face Camera</h2>
-
-    <div class="sub" id="title">
-      Camera initialise ho raha hai...
-    </div>
+    <div class="sub" id="title">Camera initialise ho raha hai...</div>
 
     <div class="videoBox">
-
-      <video
-        id="video"
-        autoplay
-        playsinline
-        muted>
-      </video>
-
+      <video id="video" autoplay playsinline muted></video>
       <div class="guide"></div>
-
       <canvas id="canvas"></canvas>
-
     </div>
 
-    <div class="status" id="status">
-      AI model load ho raha hai...
-    </div>
-
+    <div class="status" id="status">AI model load ho raha hai...</div>
     <div class="score" id="score"></div>
 
-    <button id="start" onclick="startCamera()">
-      📷 Camera Start Karein
-    </button>
-
-    <button id="capture" onclick="capture()" disabled>
-      📸 Capture Photo
-    </button>
-
-    <button id="close" onclick="finish(false)">
-      Cancel
-    </button>
-
+    <button id="start" onclick="startCamera()">📷 Camera Start Karein</button>
+    <button id="capture" onclick="capture()" disabled>📸 Capture Photo</button>
+    <button id="close" onclick="finish(false)">Cancel</button>
   </div>
 </div>
 
-
 <script>
-
 const params = new URLSearchParams(location.search);
 
 const mode = params.get('mode') || 'registration';
@@ -87,32 +58,16 @@ const token = params.get('token') || '';
 const teacher = params.get('teacher') || '';
 const type = params.get('type') || '';
 const scriptUrl = params.get('script') || '';
-
-/*
- * WebIntoApp fallback:
- * Punch camera ke baad original Apps Script page par
- * cameraResult token ke saath wapas jayega.
- */
 const returnUrl = params.get('returnUrl') || '';
-
 
 let stream = null;
 let masterEmbedding = null;
 let humanReady = false;
 let busy = false;
 
-
-/* =========================
-   HUMAN AI CONFIG
-========================= */
-
 const humanConfig = {
-
   backend: 'webgl',
-
-  modelBasePath:
-    'https://vladmandic.github.io/human-models/models/',
-
+  modelBasePath: 'https://vladmandic.github.io/human-models/models/',
   cacheModels: true,
 
   filter: {
@@ -122,7 +77,6 @@ const humanConfig = {
   },
 
   face: {
-
     enabled: true,
 
     detector: {
@@ -163,7 +117,6 @@ const humanConfig = {
     gender: {
       enabled: false
     }
-
   },
 
   body: {
@@ -185,41 +138,21 @@ const humanConfig = {
   segmentation: {
     enabled: false
   }
-
 };
-
 
 const human = new Human.Human(humanConfig);
 
-
-/* =========================
-   STATUS
-========================= */
-
 function setStatus(msg, cls) {
-
   const el = document.getElementById('status');
 
   el.textContent = msg;
 
-  el.className =
-    'status' +
-    (cls ? ' ' + cls : '');
-
+  el.className = 'status' + (cls ? ' ' + cls : '');
 }
-
 
 function setScore(msg) {
-
-  document.getElementById('score').textContent =
-    msg || '';
-
+  document.getElementById('score').textContent = msg || '';
 }
-
-
-/* =========================
-   INIT
-========================= */
 
 async function init() {
 
@@ -228,66 +161,39 @@ async function init() {
       ? (teacher + ' - Punch ' + type)
       : 'Master Face Registration';
 
-
   if (mode === 'punch' && (!scriptUrl || !token)) {
-
-    setStatus(
-      'Camera session information missing.',
-      'bad'
-    );
-
+    setStatus('Camera session information missing.', 'bad');
     return;
   }
 
-
   try {
 
-    setStatus(
-      'AI models load ho rahe hain...'
-    );
-
+    setStatus('AI models load ho rahe hain...');
 
     await human.load();
-
     await human.warmup();
 
     humanReady = true;
-
 
     if (mode === 'punch') {
 
       await loadMasterEmbedding();
 
-      if (!masterEmbedding) {
-        return;
-      }
-
+      if (!masterEmbedding) return;
     }
 
-
-    setStatus(
-      'Camera start karne ke liye button dabayein.'
-    );
-
+    setStatus('Camera start karne ke liye button dabayein.');
 
   } catch (e) {
 
     console.error(e);
 
     setStatus(
-      'AI model load nahi hua: ' +
-      (e.message || e),
+      'AI model load nahi hua: ' + (e.message || e),
       'bad'
     );
-
   }
-
 }
-
-
-/* =========================
-   MASTER FACE LOAD
-========================= */
 
 function loadMasterEmbedding() {
 
@@ -296,13 +202,11 @@ function loadMasterEmbedding() {
     const callbackName =
       'cameraCallback_' + Date.now();
 
-
     window[callbackName] = function(res) {
 
       try {
         delete window[callbackName];
       } catch(e) {}
-
 
       if (
         !res ||
@@ -317,27 +221,17 @@ function loadMasterEmbedding() {
         );
 
         resolve(false);
-
         return;
       }
 
-
       masterEmbedding = res.embedding;
 
-
-      setScore(
-        'Master Face AI data ready.'
-      );
-
+      setScore('Master Face AI data ready.');
 
       resolve(true);
-
     };
 
-
-    const s =
-      document.createElement('script');
-
+    const s = document.createElement('script');
 
     s.src =
       scriptUrl +
@@ -349,35 +243,23 @@ function loadMasterEmbedding() {
       '&_=' +
       Date.now();
 
-
     s.onerror = function() {
 
       try {
         delete window[callbackName];
       } catch(e) {}
 
-
       setStatus(
         'Google Apps Script se Face AI data nahi mila.',
         'bad'
       );
 
-
       resolve(false);
-
     };
 
-
     document.body.appendChild(s);
-
   });
-
 }
-
-
-/* =========================
-   START CAMERA
-========================= */
 
 async function startCamera() {
 
@@ -391,9 +273,7 @@ async function startCamera() {
     return;
   }
 
-
   stopCamera();
-
 
   try {
 
@@ -401,7 +281,6 @@ async function startCamera() {
       await navigator.mediaDevices.getUserMedia({
 
         video: {
-
           facingMode: {
             ideal: 'user'
           },
@@ -413,90 +292,61 @@ async function startCamera() {
           height: {
             ideal: 480
           }
-
         },
 
         audio: false
-
       });
-
 
     const video =
       document.getElementById('video');
 
-
     video.srcObject = stream;
 
-
     await video.play();
-
 
     document.getElementById(
       'capture'
     ).disabled = false;
 
-
     setStatus(
       'Face ko oval ke andar rakhein, phir Capture Photo dabayein.'
     );
 
-
     setScore('');
-
 
   } catch (e) {
 
     console.error(e);
-
 
     setStatus(
       'Chrome camera permission Allow karein. Error: ' +
       (e.message || e),
       'bad'
     );
-
   }
-
 }
-
-
-/* =========================
-   STOP CAMERA
-========================= */
 
 function stopCamera() {
 
   if (stream) {
 
-    stream
-      .getTracks()
-      .forEach(t => t.stop());
+    stream.getTracks().forEach(
+      t => t.stop()
+    );
 
     stream = null;
-
   }
-
 }
-
-
-/* =========================
-   CAPTURE
-========================= */
 
 async function capture() {
 
-  if (busy || !stream) {
-    return;
-  }
-
+  if (busy || !stream) return;
 
   busy = true;
-
 
   document.getElementById(
     'capture'
   ).disabled = true;
-
 
   try {
 
@@ -506,16 +356,13 @@ async function capture() {
     const canvas =
       document.getElementById('canvas');
 
-
     const w =
       video.videoWidth || 640;
 
     const h =
       video.videoHeight || 480;
 
-
     const max = 720;
-
 
     const scale =
       Math.min(
@@ -523,13 +370,11 @@ async function capture() {
         max / Math.max(w, h)
       );
 
-
     canvas.width =
       Math.round(w * scale);
 
     canvas.height =
       Math.round(h * scale);
-
 
     const ctx =
       canvas.getContext(
@@ -539,12 +384,6 @@ async function capture() {
         }
       );
 
-
-    /*
-     * Saved image mirror nahi hogi.
-     * AI ko normal camera orientation milegi.
-     */
-
     ctx.drawImage(
       video,
       0,
@@ -553,18 +392,14 @@ async function capture() {
       canvas.height
     );
 
-
     setStatus(
       'Face AI verification chal raha hai...'
     );
 
-
     setScore('');
-
 
     const result =
       await human.detect(canvas);
-
 
     if (
       !result.face ||
@@ -579,15 +414,11 @@ async function capture() {
           ? 'Face detect nahi hua. Roshni badhayein aur camera ke saamne seedhe dekhein.'
 
           : 'Ek se zyada face detect hua. Sirf ek person camera ke saamne ho.'
-
       );
-
     }
-
 
     const face =
       result.face[0];
-
 
     if (
       !face.embedding ||
@@ -598,13 +429,7 @@ async function capture() {
       throw new Error(
         'Face AI embedding generate nahi hua. Dobara photo lein.'
       );
-
     }
-
-
-    /* =========================
-       PUNCH VERIFICATION
-    ========================= */
 
     if (mode === 'punch') {
 
@@ -613,520 +438,4 @@ async function capture() {
           face.real == null
             ? 1
             : face.real
-        );
-
-
-      const live =
-        Number(
-          face.live == null
-            ? 1
-            : face.live
-        );
-
-
-      setScore(
-
-        'Match check...  | Real: ' +
-        (real * 100).toFixed(0) +
-        '% | Live: ' +
-        (live * 100).toFixed(0) +
-        '%'
-
-      );
-
-
-      if (
-        real < 0.50 ||
-        live < 0.10
-      ) {
-
-        throw new Error(
-          'Live face confirm nahi hua. Photo/video screen ke bajay apna face camera ke saamne rakhein.'
-        );
-
-      }
-
-
-      const similarity =
-        human.match.similarity(
-          masterEmbedding,
-          face.embedding
-        );
-
-
-      const similarityPct =
-        Number(similarity) * 100;
-
-
-      const verified =
-        similarity >= 0.50;
-
-
-      setScore(
-        'Similarity: ' +
-        similarityPct.toFixed(1) +
-        '%'
-      );
-
-
-      /*
-       * Original Chrome flow:
-       * window.opener.postMessage
-       *
-       * WebIntoApp flow:
-       * Apps Script server par result save hoga.
-       */
-
-      sendToOpener({
-
-        source:
-          'GBPS_ATTENDANCE_CAMERA',
-
-        action:
-          'punchResult',
-
-        success:
-          true,
-
-        verified:
-          verified,
-
-        similarity:
-          similarityPct,
-
-        photoData:
-          canvas.toDataURL(
-            'image/jpeg',
-            0.82
-          ),
-
-        token:
-          token
-
-      });
-
-
-      setStatus(
-
-        verified
-
-          ? '✔️ Face Match ho gaya. Attendance window me Submit Punch karein.'
-
-          : '❌ Face Match nahi hua. Dobara try karein.',
-
-        verified
-          ? 'ok'
-          : 'bad'
-
-      );
-
-
-      if (verified) {
-
-        setTimeout(
-          () => finish(true),
-          250
-        );
-
-      }
-
-
-    }
-
-    /* =========================
-       MASTER FACE REGISTRATION
-    ========================= */
-
-    else {
-
-      sendToOpener({
-
-        source:
-          'GBPS_ATTENDANCE_CAMERA',
-
-        action:
-          'registrationResult',
-
-        success:
-          true,
-
-        embedding:
-          face.embedding,
-
-        photoData:
-          canvas.toDataURL(
-            'image/jpeg',
-            0.82
-          )
-
-      });
-
-
-      setScore(
-        'Face AI data successfully generated.'
-      );
-
-
-      setStatus(
-        '✔️ Master Face capture ho gaya. Is window ko band kar sakte hain.',
-        'ok'
-      );
-
-
-      setTimeout(
-        () => finish(true),
-        900
-      );
-
-    }
-
-
-    stopCamera();
-
-
-  } catch (e) {
-
-    console.error(e);
-
-
-    setStatus(
-      '❌ ' + (e.message || e),
-      'bad'
-    );
-
-
-    document.getElementById(
-      'capture'
-    ).disabled = false;
-
-
-  } finally {
-
-    busy = false;
-
-  }
-
-}
-
-
-/* =========================
-   SEND RESULT
-========================= */
-
-function sendToOpener(data) {
-
-  /*
-   * Chrome / normal browser:
-   * Original opener ko result bhejna.
-   */
-
-  if (
-    window.opener &&
-    !window.opener.closed
-  ) {
-
-    try {
-
-      window.opener.postMessage(
-        data,
-        '*'
-      );
-
-    } catch(e) {
-
-      console.error(e);
-
-    }
-
-  }
-
-
-  /*
-   * WebIntoApp / Android WebView:
-   *
-   * window.opener aksar available nahi hota.
-   * Isliye verified Punch result
-   * Apps Script par POST kiya jayega.
-   */
-
-  if (
-    mode === 'punch' &&
-    data &&
-    data.action === 'punchResult' &&
-    data.verified === true
-  ) {
-
-    submitPunchResultToServer(data);
-
-  }
-
-}
-
-
-/* =========================
-   WEBVIEW SERVER FALLBACK
-========================= */
-
-function submitPunchResultToServer(data) {
-
-  if (!scriptUrl || !token) {
-    return;
-  }
-
-
-  try {
-
-    /*
-     * Hidden iframe + POST use kiya gaya hai
-     * taaki CORS/fetch problem na aaye.
-     */
-
-    const frame =
-      document.createElement('iframe');
-
-
-    frame.name =
-      'cameraPost_' + Date.now();
-
-
-    frame.style.display = 'none';
-
-
-    document.body.appendChild(frame);
-
-
-    const form =
-      document.createElement('form');
-
-
-    form.method =
-      'POST';
-
-
-    form.action =
-      scriptUrl;
-
-
-    form.target =
-      frame.name;
-
-
-    form.style.display =
-      'none';
-
-
-    function field(name, value) {
-
-      const input =
-        document.createElement('input');
-
-
-      input.type =
-        'hidden';
-
-
-      input.name =
-        name;
-
-
-      input.value =
-        value == null
-          ? ''
-          : String(value);
-
-
-      form.appendChild(input);
-
-    }
-
-
-    field(
-      'action',
-      'cameraResult'
-    );
-
-
-    field(
-      'token',
-      token
-    );
-
-
-    field(
-      'verified',
-      data.verified === true
-        ? 'true'
-        : 'false'
-    );
-
-
-    field(
-      'similarity',
-      data.similarity || 0
-    );
-
-
-    field(
-      'photoData',
-      data.photoData || ''
-    );
-
-
-    document.body.appendChild(form);
-
-
-    form.submit();
-
-
-    setTimeout(() => {
-
-      try {
-        form.remove();
-      } catch(e) {}
-
-
-      try {
-        frame.remove();
-      } catch(e) {}
-
-    }, 10000);
-
-
-  } catch(e) {
-
-    console.error(
-      'Camera result POST error:',
-      e
-    );
-
-  }
-
-}
-
-
-/* =========================
-   FINISH CAMERA
-========================= */
-
-function finish(success) {
-
-  stopCamera();
-
-
-  /*
-   * Chrome:
-   * Original attendance page ka opener available hai.
-   */
-
-  if (
-    window.opener &&
-    !window.opener.closed
-  ) {
-
-    setTimeout(() => {
-
-      try {
-        window.close();
-      } catch(e) {}
-
-    }, 100);
-
-    return;
-  }
-
-
-  /*
-   * WebIntoApp:
-   *
-   * Punch successful hone ke baad
-   * Apps Script attendance page par
-   * cameraResult token ke saath return.
-   */
-
-  if (
-    mode === 'punch' &&
-    success === true &&
-    returnUrl &&
-    token
-  ) {
-
-    setTimeout(() => {
-
-      try {
-
-        const sep =
-          returnUrl.indexOf('?') >= 0
-            ? '&'
-            : '?';
-
-
-        window.location.replace(
-
-          returnUrl +
-          sep +
-          'cameraResult=' +
-          encodeURIComponent(token)
-
-        );
-
-      } catch(e) {
-
-        console.error(
-          'Return URL error:',
-          e
-        );
-
-
-        setStatus(
-          'Original attendance page open nahi ho saka.',
-          'bad'
-        );
-
-      }
-
-    }, 700);
-
-
-    return;
-  }
-
-
-  /*
-   * Registration / normal close
-   */
-
-  if (success) {
-
-    setTimeout(() => {
-
-      try {
-        window.close();
-      } catch(e) {}
-
-    }, 100);
-
-  }
-
-}
-
-
-/* =========================
-   CLEANUP
-========================= */
-
-window.addEventListener(
-  'beforeunload',
-  stopCamera
-);
-
-
-/* =========================
-   START APP
-========================= */
-
-init();
-
-</script>
-
-</body>
-</html>
+       
